@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>J.A.R.V.I.S. Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at center, #0a0f1f, #000);
+      color: #00faff;
+      font-family: 'Orbitron', sans-serif;
+      overflow: hidden;
+    }
+    .grid-bg {
+      background-image: linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px);
+      background-size: 40px 40px;
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      animation: grid-move 20s linear infinite;
+    }
+    @keyframes grid-move {
+      from { background-position: 0 0, 0 0; }
+      to { background-position: 40px 40px, 40px 40px; }
+    }
+    .hud-card {
+      border: 1px solid rgba(0,255,255,0.3);
+      border-radius: 1rem;
+      background: rgba(0, 20, 40, 0.6);
+      box-shadow: 0 0 20px rgba(0,255,255,0.2);
+      backdrop-filter: blur(8px);
+      padding: 1rem;
+    }
+    .pulse {
+      animation: pulse-glow 2s infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { text-shadow: 0 0 10px #00faff, 0 0 20px #00faff; }
+      50% { text-shadow: 0 0 20px #00faff, 0 0 40px #00faff; }
+    }
+    .scan-ring {
+      border: 2px solid rgba(0,255,255,0.6);
+      border-radius: 50%;
+      width: 200px;
+      height: 200px;
+      position: relative;
+      animation: rotate 10s linear infinite;
+    }
+    .scan-ring::before {
+      content: "";
+      position: absolute;
+      inset: -10px;
+      border: 2px dashed rgba(0,255,255,0.3);
+      border-radius: 50%;
+      animation: rotate 15s linear infinite reverse;
+    }
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .listening {
+      color: #0ff;
+      font-weight: bold;
+      text-shadow: 0 0 20px cyan;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Grid -->
+  <div class="grid-bg"></div>
+
+  <!-- Main Layout -->
+  <div class="relative z-10 p-6 h-screen flex flex-col">
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold pulse">J.A.R.V.I.S.</h1>
+      <div id="time" class="text-xl"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="grid grid-cols-3 gap-6 flex-1">
+      <!-- Left Panel -->
+      <div class="flex flex-col gap-6">
+        <div class="hud-card">
+          <h2 class="text-lg font-bold mb-2">System Status</h2>
+          <p>CPU Load: <span id="cpu">23%</span></p>
+          <p>Memory: <span id="memory">65%</span></p>
+        </div>
+        <div class="hud-card">
+          <h2 class="text-lg font-bold mb-2">Weather</h2>
+          <p id="weather">Loading...</p>
+        </div>
+      </div>
+
+      <!-- Center Panel -->
+      <div class="flex flex-col items-center justify-center">
+        <div class="scan-ring flex items-center justify-center">
+          <div class="text-center">
+            <p id="statusText" class="text-lg">Idle...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="flex flex-col gap-6">
+        <div class="hud-card">
+          <h2 class="text-lg font-bold mb-2">Notifications</h2>
+          <ul id="notifications" class="list-disc ml-5 space-y-1">
+            <li>AI online</li>
+            <li>Jarvis dashboard active</li>
+          </ul>
+        </div>
+        <div class="hud-card">
+          <h2 class="text-lg font-bold mb-2">Commands</h2>
+          <p>Say: <span class="italic">"Hey Jarvis"</span></p>
+          <p id="voiceStatus" class="text-sm text-gray-400">Listening off</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Clock
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('time').textContent = now.toLocaleTimeString();
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Fake system stats
+    setInterval(() => {
+      document.getElementById("cpu").textContent = Math.floor(Math.random() * 100) + "%";
+      document.getElementById("memory").textContent = Math.floor(Math.random() * 100) + "%";
+    }, 2000);
+
+    // Fake weather
+    setTimeout(() => {
+      document.getElementById("weather").textContent = "Zurich: 18°C, Clear Skies";
+    }, 1500);
+
+    // === Voice Command System ===
+    const statusText = document.getElementById("statusText");
+    const voiceStatus = document.getElementById("voiceStatus");
+    let recognition;
+
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        voiceStatus.textContent = "Listening...";
+        voiceStatus.classList.add("listening");
+      };
+
+      recognition.onend = () => {
+        voiceStatus.textContent = "Listening off";
+        voiceStatus.classList.remove("listening");
+        recognition.start(); // auto-restart
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        console.log("Heard:", transcript);
+
+        if (transcript.includes("hey jarvis")) {
+          statusText.textContent = "At your service.";
+          speak("At your service, sir.");
+        }
+        else if (transcript.includes("time")) {
+          const now = new Date().toLocaleTimeString();
+          statusText.textContent = "The time is " + now;
+          speak("The time is " + now);
+        }
+        else if (transcript.includes("status")) {
+          statusText.textContent = "CPU: " + document.getElementById("cpu").textContent + 
+                                   ", Memory: " + document.getElementById("memory").textContent;
+          speak("System check complete.");
+        }
+      };
+
+      recognition.start();
+    } else {
+      voiceStatus.textContent = "Voice not supported in this browser";
+    }
+
+    // Speech synthesis (Jarvis replies)
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = speechSynthesis.getVoices().find(v => v.name.includes("Daniel")) || null;
+      utter.pitch = 1.1;
+      utter.rate = 1;
+      speechSynthesis.speak(utter);
+    }
+  </script>
+</body>
+</html>
