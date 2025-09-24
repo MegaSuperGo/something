@@ -145,60 +145,62 @@
     }, 1500);
 
     // === Voice Command System ===
-    const statusText = document.getElementById("statusText");
-    const voiceStatus = document.getElementById("voiceStatus");
-    let recognition;
+const statusText = document.getElementById("statusText");
+const voiceStatus = document.getElementById("voiceStatus");
+let recognition;
 
-    if ('webkitSpeechRecognition' in window) {
-      recognition = new webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = "en-US";
+if ('webkitSpeechRecognition' in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
 
-      recognition.onstart = () => {
-        voiceStatus.textContent = "Listening...";
-        voiceStatus.classList.add("listening");
-      };
+  recognition.onstart = () => {
+    voiceStatus.textContent = "Listening...";
+    voiceStatus.classList.add("listening");
+  };
 
-      recognition.onend = () => {
-        voiceStatus.textContent = "Listening off";
-        voiceStatus.classList.remove("listening");
-        recognition.start(); // auto-restart
-      };
+  recognition.onend = () => {
+    voiceStatus.textContent = "Listening off";
+    voiceStatus.classList.remove("listening");
+    recognition.start(); // auto-restart
+  };
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log("Heard:", transcript);
+  recognition.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+    console.log("Heard:", transcript);
 
-        if (transcript.includes("hey jarvis")) {
-          statusText.textContent = "At your service.";
-          speak("At your service, sir.");
-        }
-        else if (transcript.includes("time")) {
-          const now = new Date().toLocaleTimeString();
-          statusText.textContent = "The time is " + now;
-          speak("The time is " + now);
-        }
-        else if (transcript.includes("status")) {
-          statusText.textContent = "CPU: " + document.getElementById("cpu").textContent + 
-                                   ", Memory: " + document.getElementById("memory").textContent;
-          speak("System check complete.");
-        }
-      };
-
-      recognition.start();
-    } else {
-      voiceStatus.textContent = "Voice not supported in this browser";
+    if (transcript.includes("hey jarvis")) {
+      statusText.textContent = "How may I help you, sir?";
+      speak("How may I help you, sir?");
     }
-
-    // Speech synthesis (Jarvis replies)
-    function speak(text) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.voice = speechSynthesis.getVoices().find(v => v.name.includes("Daniel")) || null;
-      utter.pitch = 1.1;
-      utter.rate = 1;
-      speechSynthesis.speak(utter);
+    else if (transcript.includes("time")) {
+      const now = new Date().toLocaleTimeString();
+      statusText.textContent = "The time is " + now;
+      speak("The time is " + now);
     }
+    else if (transcript.includes("status")) {
+      const cpu = document.getElementById("cpu").textContent;
+      const memory = document.getElementById("memory").textContent;
+      statusText.textContent = `CPU: ${cpu}, Memory: ${memory}`;
+      speak("System check complete. CPU load " + cpu + ", memory usage " + memory);
+    }
+  };
+
+  recognition.start();
+} else {
+  voiceStatus.textContent = "Voice not supported in this browser";
+}
+
+// Speech synthesis (Jarvis replies)
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.voice = speechSynthesis.getVoices().find(v => v.name.includes("Daniel")) || null;
+  utter.pitch = 1.1;
+  utter.rate = 1;
+  speechSynthesis.speak(utter);
+}
+
   </script>
 </body>
 </html>
