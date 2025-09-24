@@ -71,20 +71,15 @@
   </style>
 </head>
 <body>
-  <!-- Background Grid -->
   <div class="grid-bg"></div>
 
-  <!-- Main Layout -->
   <div class="relative z-10 p-6 h-screen flex flex-col">
-    <!-- Top Bar -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold pulse">J.A.R.V.I.S.</h1>
       <div id="time" class="text-xl"></div>
     </div>
 
-    <!-- Dashboard -->
     <div class="grid grid-cols-3 gap-6 flex-1">
-      <!-- Left Panel -->
       <div class="flex flex-col gap-6">
         <div class="hud-card">
           <h2 class="text-lg font-bold mb-2">System Status</h2>
@@ -97,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Center Panel -->
       <div class="flex flex-col items-center justify-center">
         <div class="scan-ring flex items-center justify-center">
           <div class="text-center">
@@ -106,7 +100,6 @@
         </div>
       </div>
 
-      <!-- Right Panel -->
       <div class="flex flex-col gap-6">
         <div class="hud-card">
           <h2 class="text-lg font-bold mb-2">Notifications</h2>
@@ -144,63 +137,78 @@
       document.getElementById("weather").textContent = "Zurich: 18°C, Clear Skies";
     }, 1500);
 
+    const statusText = document.getElementById("statusText");
+    const voiceStatus = document.getElementById("voiceStatus");
+    let recognition;
+
     // === Voice Command System ===
-const statusText = document.getElementById("statusText");
-const voiceStatus = document.getElementById("voiceStatus");
-let recognition;
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
 
-if ('webkitSpeechRecognition' in window) {
-  recognition = new webkitSpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = false;
-  recognition.lang = "en-US";
+      recognition.onstart = () => {
+        voiceStatus.textContent = "Listening...";
+        voiceStatus.classList.add("listening");
+      };
 
-  recognition.onstart = () => {
-    voiceStatus.textContent = "Listening...";
-    voiceStatus.classList.add("listening");
-  };
+      recognition.onend = () => {
+        voiceStatus.textContent = "Listening off";
+        voiceStatus.classList.remove("listening");
+        recognition.start();
+      };
 
-  recognition.onend = () => {
-    voiceStatus.textContent = "Listening off";
-    voiceStatus.classList.remove("listening");
-    recognition.start(); // auto-restart
-  };
+      recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.trim();
+        console.log("Heard:", transcript);
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-    console.log("Heard:", transcript);
+        if (transcript.toLowerCase().includes("hey jarvis")) {
+          statusText.textContent = "How may I help you, sir?";
+          speak("How may I help you, sir?");
+        } else {
+          askJarvis(transcript);
+        }
+      };
 
-    if (transcript.includes("hey jarvis")) {
-      statusText.textContent = "How may I help you, sir?";
-      speak("How may I help you, sir?");
+      recognition.start();
+    } else {
+      voiceStatus.textContent = "Voice not supported in this browser";
     }
-    else if (transcript.includes("time")) {
-      const now = new Date().toLocaleTimeString();
-      statusText.textContent = "The time is " + now;
-      speak("The time is " + now);
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = speechSynthesis.getVoices().find(v => v.name.includes("Daniel")) || null;
+      utter.pitch = 1.1;
+      utter.rate = 1;
+      speechSynthesis.speak(utter);
     }
-    else if (transcript.includes("status")) {
-      const cpu = document.getElementById("cpu").textContent;
-      const memory = document.getElementById("memory").textContent;
-      statusText.textContent = `CPU: ${cpu}, Memory: ${memory}`;
-      speak("System check complete. CPU load " + cpu + ", memory usage " + memory);
+
+    async function askJarvis(question) {
+      statusText.textContent = "Thinking...";
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer YOUR_API_KEY" // <- Replace with your key
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [{ role: "user", content: question }]
+          })
+        });
+
+        const data = await response.json();
+        const answer = data.choices[0].message.content;
+        statusText.textContent = answer;
+        speak(answer);
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = "I couldn't get an answer, sir.";
+        speak("I couldn't get an answer, sir.");
+      }
     }
-  };
-
-  recognition.start();
-} else {
-  voiceStatus.textContent = "Voice not supported in this browser";
-}
-
-// Speech synthesis (Jarvis replies)
-function speak(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.voice = speechSynthesis.getVoices().find(v => v.name.includes("Daniel")) || null;
-  utter.pitch = 1.1;
-  utter.rate = 1;
-  speechSynthesis.speak(utter);
-}
-
   </script>
 </body>
 </html>
